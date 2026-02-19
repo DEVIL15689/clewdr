@@ -258,6 +258,15 @@ where
             .to_lowercase();
         let is_from_cc = ua.contains("claude-code") || ua.contains("claude-cli");
         let NormalizeRequest(mut body, format) = NormalizeRequest::from_request(req, &()).await?;
+
+        // Remove prefill (trailing assistant message) for Claude 4.6 models,
+        // as they do not support prefill and will return an error.
+        if body.model.contains("4-6") {
+            if matches!(body.messages.last(), Some(m) if m.role == Role::Assistant) {
+                body.messages.pop();
+            }
+        }
+
         // Handle thinking mode by modifying the model name
         if  body.temperature.is_some()
         {
